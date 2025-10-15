@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <!-- Gradient for Blue Horizon theme -->
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E3A8A"></stop>
+      <stop offset="100%" stop-color="#3B82F6"></stop>
+    </linearGradient>
+
+    <!-- Soft glow -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"></feGaussianBlur>
+      <feMerge>
+        <feMergeNode in="blur"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle for polish (optional, helps at tiny sizes) -->
+  <circle cx="64" cy="64" r="60" fill="#0B1740"></circle>
+  <circle cx="64" cy="64" r="58" stroke="url(#grad)" stroke-width="3" opacity="0.7"></circle>
+
+  <!-- Stylized T -->
+  <path d="M28 36h72v14H72v52H56V50H28V36z" fill="url(#grad)" filter="url(#glow)" rx="2" ry="2"></path>
+
+  <!-- Stylized N -->
+  <path d="M74 92V50l30 42V50h14v58h-22l-22-32v32H74z" fill="url(#grad)" filter="url(#glow)" rx="2" ry="2"></path>
+</svg>
