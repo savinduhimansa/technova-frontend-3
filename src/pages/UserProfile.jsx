@@ -43,7 +43,10 @@ export default function UserProfile() {
     if (pwd.newPassword.length < 6) return toast.error("New password must be at least 6 characters");
     if (pwd.newPassword !== pwd.confirm) return toast.error("Passwords do not match");
     try {
-      await api.put("/api/user/change-password", {
+      const { data } = await api.get("/api/user/me");
+      console.log(data.user._id);
+      await api.put("/api/user/changePassword", {
+        id:data.user._id,
         currentPassword: pwd.currentPassword,
         newPassword: pwd.newPassword,
       });

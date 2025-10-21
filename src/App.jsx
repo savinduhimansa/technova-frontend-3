@@ -48,6 +48,7 @@ import InventoryEdit from "./pages/InventoryEdit.jsx";
 import AddSupplier from "./pages/AddSupplier.jsx";
 import SupplierEdit from "./pages/SupplierEdit.jsx";
 import Suppliers from "./pages/suppliers.jsx"; 
+import SupplierAddPendingOrder from "./pages/suppliers-pending-new.jsx";
 import BuildMyPC from "./pages/BuildMyPC.jsx";
 import MyPCRequest from "./pages/MyPCRequest.jsx";  
 
@@ -139,6 +140,8 @@ export default function App() {
           <Route path="products/edit" element={<InventoryEdit />} />   {/* reads ?id= */}
           <Route path="suppliers/new" element={<AddSupplier />} />
           <Route path="suppliers/edit" element={<SupplierEdit />} />   {/* reads ?id= */}
+          <Route path="suppliers/pending/new" element={<SupplierAddPendingOrder />} />
+
         </Route>
 
         {/* ---------- Catch-all ---------- */}

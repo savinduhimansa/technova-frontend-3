@@ -28,7 +28,7 @@ const AdminUserPage = () => {
   const [search, setSearch] = useState("");
 
 
-  // NEW: Admin users list
+  //Admin list
   const [adminUsers, setAdminUsers] = useState([]);
 
   const fetchUsers = async () => {
@@ -49,6 +49,7 @@ const AdminUserPage = () => {
     const loggedIn = nonAdmins.filter(u => u.lastLogin);
     const newlyCreated = nonAdmins.filter(u => !u.lastLogin);
 
+    //calling
     setLoggedInUsers(loggedIn);
     setNewlyCreatedUsers(newlyCreated);
     setAdminUsers(admins);
@@ -63,17 +64,17 @@ const AdminUserPage = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
-
+//add new user
   const handleAddInputChange = (e) => {
   const { name, value, type, checked } = e.target;
   const v = type === 'checkbox' ? checked : value;
 
   setNewUser(prev => ({ ...prev, [name]: v }));
 
-  // --- live validation rules ---
+  //validation 
   let msg = "";
   if (name === "userId") {
-    if (!/^[A-Za-z0-9_-]{0,50}$/.test(String(v).trim())) msg = "User ID must be numbers.";
+    if (!/^\d*$/.test(String(v).trim())) msg = "User ID must be numbers.";
   }
   if (name === "firstName") {
     if (!/^[A-Za-z\s]+$/.test(String(v).trim())) msg = "First name must contain only letters.";
@@ -90,13 +91,14 @@ const AdminUserPage = () => {
   if (name === "password") {
     if (!/^(?=.*\d).{6,}$/.test(String(v))) msg = "Password must be ≥6 chars and include a number.";
   }
-  if (name === "phone" && String(v).trim() !== "") {
-    if (!/^\+?[0-9\s\-()]{7,15}$/.test(String(v).trim())) msg = "Enter a valid phone number.";
-  }
+ if (name === "phone" && String(v).trim() !== "") {
+  if (!/^\d{10}$/.test(String(v).trim())) msg = "Phone number must be exactly 10 digits.";
+}
 
-  // Set browser validity (no JSX changes needed)
+
+  // Set browser validity
   e.target.setCustomValidity(msg);
-  // Update our error bag (used for submit blocking)
+  // Update error
   setErrors(prev => {
     if (!msg) {
       const { [name]: _omit, ...rest } = prev;
@@ -106,16 +108,17 @@ const AdminUserPage = () => {
   });
 };
 
-
+//user edit
   const handleEditInputChange = (e) => {
   const { name, value, type, checked } = e.target;
   const v = type === 'checkbox' ? checked : value;
 
   setEditingUser(prev => ({ ...prev, [name]: v }));
-
+//validation
   let msg = "";
   if (name === "userId") {
-    if (!/^[A-Za-z0-9_-]{0,50}$/.test(String(v).trim())) msg = "User ID must be numbers.";
+    
+    if (!/^\d*$/.test(String(v).trim())) msg = "User ID must be numbers.";
   }
   if (name === "firstName") {
     if (!/^[A-Za-z\s]+$/.test(String(v).trim())) msg = "First name must contain only letters.";
@@ -129,9 +132,10 @@ const AdminUserPage = () => {
   if (name === "role") {
     if (!/^user|admin$/.test(String(v))) msg = "Select a valid role.";
   }
-  if (name === "phone" && String(v).trim() !== "") {
-    if (!/^\+?[0-9\s\-()]{7,15}$/.test(String(v).trim())) msg = "Enter a valid phone number.";
-  }
+ if (name === "phone" && String(v).trim() !== "") {
+  if (!/^\d{10}$/.test(String(v).trim())) msg = "Phone number must be exactly 10 digits.";
+}
+
 
   e.target.setCustomValidity(msg);
   setErrors(prev => {
@@ -188,7 +192,7 @@ if (Object.values(errors).some(Boolean)) return;
     e.preventDefault();
     if (!editingUser) return;
 
-// Trigger built-in validation UI and block if invalid
+// Trigger validation UI and block if invalid
 if (!e.currentTarget.checkValidity()) {
   e.currentTarget.reportValidity();
   return;
@@ -212,7 +216,7 @@ if (Object.values(errors).some(Boolean)) return;
       toast.error(error.response?.data?.message || "Failed to update user.");
     }
   };
-
+//delete user
   const deleteUser = (userId) => {
     toast((t) => (
       <div className="bg-white border border-[#BFDBFE] text-[#1E3A8A] rounded-xl p-4 shadow">
@@ -237,7 +241,7 @@ if (Object.values(errors).some(Boolean)) return;
       </div>
     ), { duration: 99999, style: { minWidth: '350px' } });
   };
-
+//comfirm deleting
   const confirmDelete = async (userId) => {
     try {
       const token = localStorage.getItem('token');
@@ -252,7 +256,7 @@ if (Object.values(errors).some(Boolean)) return;
       toast.error(error.response?.data?.message || "Failed to delete user.");
     }
   };
-
+//clear form
   const handleClearForm = () => {
     setNewUser({
       userId: '',
@@ -266,28 +270,123 @@ if (Object.values(errors).some(Boolean)) return;
       isEmailVerified: false
     });
   };
+const downloadPdf = (users, title) => {
+  // Landscape A4 = more horizontal space so columns don't crush
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
-  const downloadPdf = (users, title) => {
-    const doc = new jsPDF();
-    doc.text(title, 14, 15);
-    autoTable(doc, {
-      startY: 20,
-      head: [['ID', 'First Name', 'Last Name', 'Email', 'Role', 'Phone', 'Disabled', 'Email Verified', 'Last Login']],
-      body: users.map(user => [
-        user.userId,
-        user.firstName,
-        user.lastName,
-        user.email,
-        user.role,
-        user.phone || 'N/A',
-        user.isDisable ? 'Yes' : 'No',
-        user.isEmailVerified ? 'Yes' : 'No',
-        user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'
-      ]),
-    });
-    doc.save(`${title.toLowerCase().replace(/ /g, '-')}.pdf`);
-  };
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formattedDate = `Generated on: ${dateStr} at ${timeStr}`;
+
+  // === HEADER (colors unchanged) ===
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(41, 128, 185);
+  doc.text("TechNova", pageWidth / 2, 16, { align: "center" });
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(12);
+  doc.setTextColor(100);
+  doc.text("Empowering Digital Operations", pageWidth / 2, 23, { align: "center" });
+
+  doc.setFont("helvetica", "bolditalic");
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Topic: ${title}`, 14, 36);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(formattedDate, pageWidth - 14, 36, { align: "right" });
+
+  // divider for clarity
+  doc.setDrawColor(200);
+  doc.line(14, 42, pageWidth - 14, 42);
+
+  // === TABLE ===
+  // Build rows (keep full content)
+  const body = users.map(user => [
+    user.userId ?? '',
+    user.firstName ?? '',
+    user.lastName ?? '',
+    user.email ?? '',
+    (user.role ?? '').toString(),
+    (user.phone && String(user.phone).trim()) ? user.phone : 'Not given',
+    user.isDisable ? 'Yes' : 'No',
+    user.isEmailVerified ? 'Yes' : 'No',
+    user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'N/A'
+  ]);
+
+  // Fixed, readable column widths (will be scaled to fit exactly)
+  // [ID, First, Last, Email, Role, Phone, Disabled, Email Verified, Last Login]
+  const marginLeft = 14;
+  const marginRight = 14;
+  const tableWidth = pageWidth - marginLeft - marginRight;
+
+  // Tuned widths to show full values; wrap is ON so long text goes to next line, not mid-word split.
+  const colWidths = [14, 28, 28, 75, 20, 30, 18, 26, 30]; // sum = 269 (A4 landscape usable ≈ 269mm)
+  const sum = colWidths.reduce((a, b) => a + b, 0);
+  const scale = tableWidth / sum;
+  const W = colWidths.map(w => w * scale);
+
+  autoTable(doc, {
+    startY: 50,
+    tableWidth,
+    margin: { left: marginLeft, right: marginRight },
+    head: [[
+      'ID', 'First Name', 'Last Name', 'Email', 'Role', 'Phone', 'Disabled', 'Email Verified', 'Last Login'
+    ]],
+    body,
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,            // compact but readable
+      cellPadding: 3.5,
+      overflow: 'linebreak',   // wrap to next line (no truncation)
+      wordBreak: 'normal',     // don't break words in the middle
+      valign: 'top',
+      textColor: [30, 58, 138],
+      lineColor: [191, 219, 254],
+    },
+    headStyles: {
+      fillColor: [30, 64, 175], // keep your blue
+      textColor: 255,
+      fontStyle: 'bold',
+      halign: 'left'
+    },
+    alternateRowStyles: {
+      fillColor: [239, 246, 255], // light zebra
+    },
+    columnStyles: {
+      0: { cellWidth: W[0] }, // ID
+      1: { cellWidth: W[1] }, // First
+      2: { cellWidth: W[2] }, // Last
+      3: { cellWidth: W[3] }, // Email
+      4: { cellWidth: W[4] }, // Role
+      5: { cellWidth: W[5] }, // Phone
+      6: { cellWidth: W[6] }, // Disabled
+      7: { cellWidth: W[7] }, // Email Verified
+      8: { cellWidth: W[8] }, // Last Login
+    },
+    didDrawPage: () => {
+      // Footer per page
+      const page = doc.internal.getCurrentPageInfo().pageNumber;
+      const pages = doc.internal.getNumberOfPages();
+      doc.setFontSize(10);
+      doc.setTextColor(130);
+      doc.text(`Page ${page} of ${pages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+    },
+  });
+
+  // === SAVE ===
+  doc.save(`${title.toLowerCase().replace(/ /g, '-')}.pdf`);
+};
+
+
+//acoount activation and deactivation
   const handleToggleAccountStatus = async (userId) => {
     if (togglingUserId) return;
 
@@ -308,7 +407,7 @@ if (Object.values(errors).some(Boolean)) return;
       setTogglingUserId(null);
     }
   };
-
+//table
   const renderUserTable = (usersToRender) => (
     <div className="table-responsive overflow-x-auto rounded-xl border border-[#BFDBFE] bg-[#DBEAFE] shadow-sm">
       <table className="user-table w-full text-sm text-left">
@@ -514,7 +613,7 @@ const filteredAdmins = adminUsers.filter(u => matchUser(u, search));
   onChange={handleEditInputChange}
   required
   className={`rounded-lg bg-white border px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 
-    ${errors.userId ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-[#BFDBFE] focus:ring-[#3B82F6] focus:border-[#3B82F6]"}`}
+    `}
 />
 {errors.userId && <p className="mt-1 text-xs text-red-500">{errors.userId}</p>}
 
@@ -618,7 +717,7 @@ const filteredAdmins = adminUsers.filter(u => matchUser(u, search));
      <h2 className="text-xl font-semibold text-[#1E40AF]">Logged-In Accounts</h2>
 
 <div className="flex items-center gap-2 mb-3">
-  {/* PDF for ALL logged-in users */}
+  {/* PDF for all logged-in users */}
   <button
     className="rounded-lg bg-[#3B82F6] hover:bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white shadow transition"
     onClick={() => downloadPdf(loggedInUsers, 'Logged-In Accounts')}
@@ -626,7 +725,7 @@ const filteredAdmins = adminUsers.filter(u => matchUser(u, search));
     Download Logged-In Users PDF (All)
   </button>
 
-  {/* PDF for FILTERED results */}
+  {/* PDF for filtered results */}
   <button
     className="rounded-lg bg-[#3B82F6] hover:bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white shadow transition disabled:opacity-50"
     onClick={() => downloadPdf(filteredLoggedIn, 'Logged-In Accounts (Filtered)')}
@@ -651,7 +750,7 @@ const filteredAdmins = adminUsers.filter(u => matchUser(u, search));
      <h2 className="text-xl font-semibold text-[#1E40AF]">Newly Created Accounts (Never Logged In)</h2>
 
 <div className="flex items-center gap-2 mb-3">
-  {/* PDF for ALL newly created users */}
+  {/* PDF for all newly created users */}
   <button
     className="rounded-lg bg-[#3B82F6] hover:bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white shadow transition"
     onClick={() => downloadPdf(newlyCreatedUsers, 'Newly Created Accounts')}
@@ -659,7 +758,7 @@ const filteredAdmins = adminUsers.filter(u => matchUser(u, search));
     Download New Users PDF (All)
   </button>
 
-  {/* PDF for FILTERED results */}
+  {/* PDF for filterd results */}
   <button
     className="rounded-lg bg-[#3B82F6] hover:bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white shadow transition disabled:opacity-50"
     onClick={() => downloadPdf(filteredNewlyCreated, 'Newly Created Accounts (Filtered)')}
@@ -681,7 +780,7 @@ const filteredAdmins = adminUsers.filter(u => matchUser(u, search));
 
       <hr className="border-[#BFDBFE]" />
 
-      {/* NEW: Admin-only table */}
+     
       <h2 className="text-xl font-semibold text-[#1E40AF]">Admin Accounts</h2>
       <button
         className="rounded-lg bg-[#3B82F6] hover:bg-[#1E40AF] px-4 py-2 text-sm font-semibold text-white shadow transition mb-3"

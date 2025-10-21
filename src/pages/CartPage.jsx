@@ -2,9 +2,224 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
 import { useEffect, useMemo, useState } from "react";
-import { createPublicOrder, getMyOrders, cancelMyOrder } from "../api/orders";
+import {
+  createPublicOrder,
+  getMyOrders,
+  cancelMyOrder,
+  updateMyOrder, // ⬅️ NEW
+} from "../api/orders";
+import { getProductsList } from "../api/product"; // ⬅️ use your existing helper
 import { useNavigate } from "react-router-dom";
 import { FiTrash2, FiCreditCard, FiLock } from "react-icons/fi";
+
+/* ------------------------ Edit Order Modal (customer) ----------------------- */
+function EditOrderModal({ order, onClose, onSaved }) {
+  const [allProducts, setAllProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // shipping fields (editable)
+  const [customer, setCustomer] = useState({
+    customerName: order.customerName || "",
+    phoneNumber: order.phoneNumber || "",
+    address: order.address || "",
+  });
+
+  // editable rows: { productName, quantity }
+  const initialRows = (order.products || []).map((p) => ({
+    productName: p?.product?.name || p.productId || "",
+    quantity: Number(p.quantity || 1),
+  }));
+  const [rows, setRows] = useState(initialRows.length ? initialRows : [{ productName: "", quantity: 1 }]);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoadingProducts(true);
+        const products = await getProductsList(); // already normalized to []
+        setAllProducts(Array.isArray(products) ? products : []);
+      } catch (e) {
+        console.error("Failed to load products", e);
+        setAllProducts([]);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  const findProduct = (name) => allProducts.find((p) => (p.name || "").trim() === (name || "").trim());
+
+  const lineTotal = (r) => {
+    const prod = findProduct(r.productName);
+    const price = Number(prod?.price || 0);
+    return price * Number(r.quantity || 0);
+  };
+
+  const subtotal = rows.reduce((s, r) => s + lineTotal(r), 0);
+
+  const canSave =
+    rows.length > 0 &&
+    rows.every((r) => r.productName && Number(r.quantity) >= 1) &&
+    customer.customerName &&
+    customer.phoneNumber &&
+    customer.address;
+
+  const addRow = () => setRows((prev) => [...prev, { productName: "", quantity: 1 }]);
+  const removeRow = (i) => setRows((prev) => prev.filter((_, idx) => idx !== i));
+  const setRow = (i, patch) =>
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+
+  const onSubmit = async () => {
+    // Only pending & payment pending allowed (UI protection)
+    const allowed =
+      order.status === "Pending" && (order.paymentStatus ?? "Pending") === "Pending";
+    if (!allowed) {
+      alert("Only pending orders with pending payment can be edited.");
+      return;
+    }
+    if (!canSave) return;
+
+    try {
+      setSaving(true);
+      // backend contract: products: [{ productName, quantity }]
+      const payload = {
+        customerName: customer.customerName,
+        phoneNumber: customer.phoneNumber,
+        address: customer.address,
+        products: rows.map((r) => ({
+          productName: r.productName,
+          quantity: Number(r.quantity || 1),
+        })),
+      };
+      await updateMyOrder(order._id, payload);
+      onSaved?.();
+      onClose?.();
+    } catch (e) {
+      console.error("Failed to update order", e);
+      alert(e?.response?.data?.message || "Failed to update order");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-[95vw] max-w-3xl rounded-2xl border border-[#BFDBFE] bg-white p-5 shadow-2xl">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-[#1E40AF]">
+            Edit Order {order.orderID}
+          </h3>
+          <button
+            className="text-[#1E40AF] border border-[#BFDBFE] rounded-lg px-3 py-1 hover:bg-[#EFF6FF]"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+
+        {/* Shipping */}
+        <div className="grid md:grid-cols-3 gap-3 mb-4">
+          <input
+            className="rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-[#1E3A8A] focus:outline-none"
+            placeholder="Full name"
+            value={customer.customerName}
+            onChange={(e) => setCustomer({ ...customer, customerName: e.target.value })}
+          />
+          <input
+            className="rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-[#1E3A8A] focus:outline-none"
+            placeholder="Phone number"
+            value={customer.phoneNumber}
+            onChange={(e) => setCustomer({ ...customer, phoneNumber: e.target.value })}
+          />
+          <input
+            className="rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-[#1E3A8A] focus:outline-none"
+            placeholder="Address"
+            value={customer.address}
+            onChange={(e) => setCustomer({ ...customer, address: e.target.value })}
+          />
+        </div>
+
+        {/* Items */}
+        <div className="space-y-2">
+          {rows.map((r, i) => {
+            const prod = findProduct(r.productName);
+            return (
+              <div
+                key={i}
+                className="grid grid-cols-12 gap-2 items-center border border-[#BFDBFE] rounded-lg p-2"
+              >
+                <div className="col-span-7">
+                  <select
+                    className="w-full rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-[#1E3A8A] focus:outline-none"
+                    value={r.productName}
+                    onChange={(e) => setRow(i, { productName: e.target.value })}
+                  >
+                    <option value="">{loadingProducts ? "Loading..." : "Select product"}</option>
+                    {allProducts.map((p) => (
+                      <option key={p._id} value={p.name}>
+                        {p.name} (${Number(p.price).toFixed(2)}) {p.stock != null ? `[stock ${p.stock}]` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="col-span-2">
+                  <input
+                    type="number"
+                    min={1}
+                    className="w-full rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-[#1E3A8A] focus:outline-none"
+                    value={r.quantity}
+                    onChange={(e) => setRow(i, { quantity: Math.max(1, Number(e.target.value || 1)) })}
+                  />
+                </div>
+
+                <div className="col-span-2 text-right font-semibold text-[#1E40AF]">
+                  ${lineTotal(r).toFixed(2)}
+                </div>
+
+                <div className="col-span-1 text-right">
+                  <button
+                    onClick={() => removeRow(i)}
+                    className="px-3 py-2 rounded-lg border border-[#BFDBFE] text-[#1E40AF] hover:bg-[#EFF6FF]"
+                  >
+                    X
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          <div className="flex justify-between items-center pt-2">
+            <button
+              onClick={addRow}
+              className="px-3 py-2 rounded-lg border border-[#BFDBFE] text-[#1E40AF] hover:bg-[#EFF6FF]"
+            >
+              + Add Item
+            </button>
+            <div className="text-[#1E40AF] font-bold">Subtotal: ${subtotal.toFixed(2)}</div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg border border-[#BFDBFE] text-[#1E40AF] hover:bg-[#EFF6FF]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={!canSave || saving}
+            className="px-4 py-2 rounded-lg bg-[#3B82F6] text-white font-semibold hover:bg-[#2563EB] disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* --------------------- End: Edit Order Modal (customer) --------------------- */
 
 export default function CartPage() {
   const { items, updateQty, removeFromCart, clearCart, subtotal } = useCart();
@@ -32,29 +247,32 @@ export default function CartPage() {
   const [myOrders, setMyOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
+  // NEW: edit modal state
+  const [editing, setEditing] = useState(null); // order object or null
+
   // fetch my orders when logged in
-  useEffect(() => {
+  const refreshOrders = async () => {
     if (!token) return;
-    (async () => {
-      try {
-        setLoadingOrders(true);
-        const res = await getMyOrders();
-        setMyOrders(res.data || []);
-      } catch (e) {
-        console.error("Failed to load orders", e);
-      } finally {
-        setLoadingOrders(false);
-      }
-    })();
+    try {
+      setLoadingOrders(true);
+      const res = await getMyOrders();
+      setMyOrders(res.data || []);
+    } catch (e) {
+      console.error("Failed to load orders", e);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+  useEffect(() => {
+    refreshOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const cancelOrder = async (orderId) => {
     if (!confirm("Cancel this order?")) return;
     try {
       await cancelMyOrder(orderId);
-      // refresh list
-      const res = await getMyOrders();
-      setMyOrders(res.data || []);
+      await refreshOrders();
     } catch (e) {
       alert(e?.response?.data?.message || "Failed to cancel order");
     }
@@ -82,7 +300,7 @@ export default function CartPage() {
     if (!(mm >= 1 && mm <= 12) || Number.isNaN(yy)) return false;
     const year = 2000 + yy;
     const now = new Date();
-    const exp = new Date(year, mm, 0, 23, 59, 59); // end of month
+    const exp = new Date(year, mm, 0, 23, 59, 59);
     return exp >= now;
   };
 
@@ -130,6 +348,7 @@ export default function CartPage() {
       alert(e?.response?.data?.message || "Failed to place order");
     } finally {
       setLoading(false);
+      await refreshOrders();
     }
   };
 
@@ -368,8 +587,8 @@ export default function CartPage() {
                         (s, l) => s + (l.unitPrice || 0) * (l.quantity || 0),
                         0
                       );
-                      const cancellable =
-                        o.status === "Pending" && o.paymentStatus === "Pending";
+                      const editable =
+                        o.status === "Pending" && (o.paymentStatus ?? "Pending") === "Pending";
                       return (
                         <tr key={o._id} className="border-t border-[#BFDBFE]">
                           <td className="p-2">{o.orderID}</td>
@@ -388,12 +607,23 @@ export default function CartPage() {
                           </td>
                           <td className="p-2">${total.toFixed(2)}</td>
                           <td className="p-2">{o.status}</td>
-                          <td className="p-2">
+                          <td className="p-2 flex gap-2">
                             <button
-                              disabled={!cancellable}
+                              disabled={!editable}
+                              onClick={() => setEditing(o)}
+                              className={`px-3 py-1.5 rounded-lg border ${
+                                editable
+                                  ? "border-[#BFDBFE] text-[#1E40AF] hover:bg-[#EFF6FF]"
+                                  : "opacity-40 cursor-not-allowed border-[#E5E7EB] text-[#9CA3AF]"
+                              } transition`}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              disabled={!editable}
                               onClick={() => cancelOrder(o._id)}
                               className={`px-3 py-1.5 rounded-lg border ${
-                                cancellable
+                                editable
                                   ? "border-[#BFDBFE] text-[#1E40AF] hover:bg-[#EFF6FF]"
                                   : "opacity-40 cursor-not-allowed border-[#E5E7EB] text-[#9CA3AF]"
                               } transition`}
@@ -413,6 +643,15 @@ export default function CartPage() {
       </main>
 
       <Footer />
+
+      {/* Edit modal */}
+      {editing && (
+        <EditOrderModal
+          order={editing}
+          onClose={() => setEditing(null)}
+          onSaved={refreshOrders}
+        />
+      )}
     </div>
   );
 }

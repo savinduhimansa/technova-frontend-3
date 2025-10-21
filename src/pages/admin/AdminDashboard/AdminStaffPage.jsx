@@ -5,14 +5,14 @@ import { jsPDF } from 'jspdf';
 import autoTable from "jspdf-autotable";
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
 
-// Normalize various API payload shapes to an array of staff
+// API payload shapes to an array of staff
 const pickStaffArray = (data) => {
   if (Array.isArray(data)) return data;
   // common container keys your API might use
   return data?.staffMembers || data?.staff || data?.data || [];
 };
 
-// Decide if a staff member has logged in (support multiple possible fields)
+// Decide if a staff member has logged in
 const hasLoggedIn = (s) => {
   const t =
     s?.lastLogin ||
@@ -50,7 +50,7 @@ const AdminStaffPage = () => {
 const [searchNew, setSearchNew] = useState('');
 
 
-
+//staff members
   const fetchStaffMembers = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -59,8 +59,8 @@ const [searchNew, setSearchNew] = useState('');
       });
       const allStaff = response.data.staffMembers;
 
-      const loggedIn = allStaff.filter(staff => staff.lastLogin);
-      const newlyCreated = allStaff.filter(staff => !staff.lastLogin);
+      const loggedIn = allStaff.filter(hasLoggedIn);
+      const newlyCreated = allStaff.filter(s => !hasLoggedIn(s));
       
 
       setLoggedInStaff(loggedIn);
@@ -69,7 +69,7 @@ const [searchNew, setSearchNew] = useState('');
       
 
       toast.success("Staff data loaded successfully.");
-    } catch (error) {
+    } catch (error) { 
       console.error("Failed to fetch staff data:", error);
       toast.error("Failed to load staff data.");
     }
@@ -79,13 +79,14 @@ const [searchNew, setSearchNew] = useState('');
     fetchStaffMembers();
   }, []);
 
+  //add new staff memeber
   const handleAddInputChange = (e) => {
   const { name, value, type, checked } = e.target;
   const v = type === 'checkbox' ? checked : value;
 
   setNewStaff(prev => ({ ...prev, [name]: v }));
 
-  // live validation
+  // validation
   let msg = "";
   if (name === "staffId") {
     if (!/^[A-Za-z0-9_-]{0,50}$/.test(String(v).trim())) msg = "Staff ID must be 0–50 letters/numbers.";
@@ -113,14 +114,16 @@ const [searchNew, setSearchNew] = useState('');
   setErrors(prev => ({ ...prev, [name]: msg }));
 };
 
-
+//edit staff
  const handleEditInputChange = (e) => {
   const { name, value, type, checked } = e.target;
   const v = type === 'checkbox' ? checked : value;
 
+  
+
   setEditingStaff(prev => ({ ...prev, [name]: v }));
 
-  // live validation (edit)
+  // validation
   let msg = "";
   if (name === "name") {
     if (!/^[A-Za-z\s]+$/.test(String(v).trim())) msg = "Name must contain only letters.";
@@ -135,6 +138,10 @@ const [searchNew, setSearchNew] = useState('');
     const n = Number(v);
     if (!Number.isInteger(n) || n < 18 || n > 70) msg = "Age must be between 18 and 70.";
   }
+  if (name === "staffId") {
+    const n = Number(v);
+    if (!Number.isInteger(n) || n < 18 || n > 70) msg = "ID must be an Integer.";
+  }
   if (name === "address") {
     if (!/^[A-Za-z0-9\s,.\-/#]{5,}$/.test(String(v).trim())) msg = "Enter a valid address (min 5 chars).";
   }
@@ -145,10 +152,10 @@ const [searchNew, setSearchNew] = useState('');
 
  const handleEditClick = (staff) => {
   setEditingStaff(staff);
-  setErrors({}); // 🔹 clear stale add-form errors
+  setErrors({}); 
 };
 
-
+//account activation and deactivation
   const handleToggleAccountStatus = async (staffId) => {
     if (togglingStaffId) return;
 
@@ -227,7 +234,7 @@ if (
     }
   };
 
-  // This function will handle the actual API call and toast feedback
+  // comfirm delete message
   const confirmDeleteStaff = async (staffId) => {
     try {
       const token = localStorage.getItem('token');
@@ -242,7 +249,7 @@ if (
       toast.error(error.response?.data?.message || "Failed to delete staff member.");
     }
   };
-
+//delete staff
   const deleteStaff = (staffId) => {
     toast((t) => (
       <div className="custom-toast-content bg-white border border-[#BFDBFE] text-[#1E3A8A] rounded-xl p-4 shadow">
@@ -270,7 +277,7 @@ if (
       style: { minWidth: '350px' },
     });
   };
-
+//clear form
   const handleClearForm = () => {
     setNewStaff({
       staffId: '', name: '', role: '', email: '', age: '', password: '', address: '', isDisable: false
@@ -293,28 +300,70 @@ const matchesQuery = (s, q) => {
 
   //download pdf
 
-  const downloadPdf = (staffToDownload, title) => {
-    const doc = new jsPDF();
-    doc.text(title, 14, 15);
-    autoTable(doc, {
-      startY: 20,
-      head: [['ID', 'Name', 'Role', 'Email', 'Age', 'Address', 'Status', 'Last Login']],
-      body: staffToDownload.map(staff => [
-        staff.staffId,
-        staff.name,
-        staff.role,
-        staff.email,
-        staff.age,
-        staff.address,
-        staff.isDisable ? 'Deactivated' : 'Active',
-        staff.lastLogin ? new Date(staff.lastLogin).toLocaleString() : 'N/A'
-      ]),
-    });
-    doc.save(`${title.toLowerCase().replace(/ /g, '-')}.pdf`);
-  };
+ const downloadPdf = (staffToDownload, title) => {
+  const doc = new jsPDF();
 
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const now = new Date();
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  const dateStr = now.toLocaleDateString(undefined, options);
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formattedDate = `Generated on: ${dateStr} at ${timeStr}`;
+
+  // header
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(41, 128, 185); 
+  doc.text("TechNova", pageWidth / 2, 15, { align: "center" });
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(12);
+  doc.setTextColor(100);
+  doc.text("Empowering Digital Operations", pageWidth / 2, 22, { align: "center" });
+
+  doc.setFont("helvetica", "bolditalic");
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Topic: ${title}`, 14, 35);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(formattedDate, pageWidth - 14, 35, { align: "right" });
+
+  //table 
+  autoTable(doc, {
+    startY: 42,
+    head: [['ID', 'Name', 'Role', 'Email', 'Age', 'Address', 'Status', 'Last Login']],
+    body: staffToDownload.map(staff => [
+      staff.staffId,
+      staff.name,
+      staff.role,
+      staff.email,
+      staff.age,
+      staff.address,
+      staff.isDisable ? 'Deactivated' : 'Active',
+      staff.lastLogin ? new Date(staff.lastLogin).toLocaleString() : 'N/A'
+    ]),
+  });
+
+  // footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(10);
+    doc.setTextColor(130);
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+  }
+
+  doc.save(`${title.toLowerCase().replace(/ /g, '-')}.pdf`);
+};
+
+
+
+  //table
   const renderStaffTable = (staffToRender) => (
     <div className="table-responsive overflow-x-auto rounded-xl border border-[#BFDBFE] bg-[#DBEAFE] shadow-sm">
+      
       <table className="staff-table w-full text-sm text-left">
         <thead className="bg-[#BFDBFE] text-[#1E40AF]">
           <tr>
@@ -489,16 +538,19 @@ const matchesQuery = (s, q) => {
             className="staff-form grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-white border border-[#BFDBFE] p-4 rounded-xl shadow-sm"
             onSubmit={editStaff}
           >
-            <input
-              type="text"
-              name="name"
-              placeholder="Name"
-              value={editingStaff.name}
-              onChange={handleEditInputChange}
-              required
-               className={`rounded-lg bg-white border px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 ${errors.name ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-[#BFDBFE] focus:ring-[#3B82F6] focus:border-[#3B82F6]"}`}
-
-        />
+           <input
+            type="text"
+            name="name"
+            placeholder="Name"
+            value={editingStaff.name}
+            onChange={handleEditInputChange}
+            required
+            pattern="[A-Za-z\s]+"
+            title="Only letters (A–Z, a–z) and spaces are allowed"
+            className={`rounded-lg bg-white border px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 ${
+              errors.name ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-[#BFDBFE] focus:ring-[#3B82F6] focus:border-[#3B82F6]"
+            }`}
+          />
         {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
             <input
               type="text"
@@ -579,7 +631,7 @@ const matchesQuery = (s, q) => {
   value={searchLogged}
   onChange={(e) => setSearchLogged(e.target.value)}
   placeholder="Search logged-in staff… (name, email, role, ID, address)"
-  className="mb-3 w-full md:w-80 rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#3B82F6]"
+  className="mb-3 mr-10 w-full md:w-80 rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#3B82F6]"
 />
 
       <button
@@ -602,7 +654,7 @@ const matchesQuery = (s, q) => {
   value={searchNew}
   onChange={(e) => setSearchNew(e.target.value)}
   placeholder="Search newly created staff… (name, email, role, ID, address)"
-  className="mb-3 w-full md:w-80 rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#3B82F6]"
+  className="mb-3 mr-10 w-full md:w-80 rounded-lg bg-white border border-[#BFDBFE] px-3 py-2 text-sm text-[#1E3A8A] placeholder-[#1E3A8A]/60 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#3B82F6]"
 />
 
       <button

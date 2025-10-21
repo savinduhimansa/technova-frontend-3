@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-import { FaUserTie } from "react-icons/fa"; // staff profile icon
+import { FaUserTie } from "react-icons/fa"; 
 
 export default function StaffProfile() {
   const [form, setForm] = useState({ name: "", age: "", address: "" });
@@ -45,7 +45,10 @@ export default function StaffProfile() {
     if (pwd.newPassword.length < 6) return toast.error("New password must be at least 6 characters");
     if (pwd.newPassword !== pwd.confirm) return toast.error("Passwords do not match");
     try {
-      await api.put("/api/staff/change-password", {
+      const { data } = await api.get("/api/staff/me");
+
+      await api.put("/api/staff/changePassword", {
+        id:data.staff.staffId,
         currentPassword: pwd.currentPassword,
         newPassword: pwd.newPassword,
       });

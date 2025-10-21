@@ -19,7 +19,7 @@ const AdminFeedbackPage = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
-
+//feedbacks
   const fetchFeedbacks = async () => {
     try {
       setLoading(true);
@@ -62,78 +62,170 @@ const AdminFeedbackPage = () => {
     };
   }, [filtered]);
 
+  //export CSV
   const exportCSV = () => {
-    if (!filtered.length) { toast('No feedbacks to export'); return; }
-    const header = ['Email','Name','Rating','Comments','Created At'];
-    const rows = filtered.map(f => [
-      f.email, f.name || 'Anonymous', f.serviceRating, (f.comments || '').replace(/\s+/g, ' ').trim(),
-      f.createdAt ? new Date(f.createdAt).toLocaleString() : ''
-    ]);
-    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type:'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `feedback-report-${new Date().toISOString().slice(0,10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+  if (!filtered.length) { toast('No feedbacks to export'); return; }
 
-  const exportPDF = () => {
-    if (!filtered.length) { toast('No feedbacks to export'); return; }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-    const now = new Date();
+  // === Header section for CSV file ===
+  const headerInfo = [
+    'TechNova',
+    'Empowering Digital Operations',
+    `Generated on: ${dateStr} at ${timeStr}`,
+    '' // blank line for spacing before table
+  ];
 
-    doc.setFontSize(16);
-    doc.text('Feedback Report', 40, 40);
-    doc.setFontSize(10);
-    doc.text(`Generated: ${now.toLocaleString()}`, 40, 58);
+  // === Table data ===
+  const header = ['Email', 'Name', 'Rating', 'Comments', 'Created At'];
+  const rows = filtered.map(f => [
+    f.email || '',
+    f.name || 'Anonymous',
+    f.serviceRating ?? '',
+    (f.comments || '').replace(/\s+/g, ' ').trim(),
+    f.createdAt ? new Date(f.createdAt).toLocaleString() : ''
+  ]);
 
-    const summary = [
-      `Total: ${stats.total}`,
-      `Average Rating: ${stats.avg}`,
-      `5★: ${stats.dist[5]} | 4★: ${stats.dist[4]} | 3★: ${stats.dist[3]} | 2★: ${stats.dist[2]} | 1★: ${stats.dist[1]}`,
-    ].join('   •   ');
-    doc.setFontSize(11);
-    doc.text(summary, 40, 80);
+  // Combine header info and data
+  const csvSections = [
+    headerInfo.join('\n'),
+    [header.join(',')],
+    ...rows.map(r => r.map(cell => {
+      // Escape double quotes and wrap text containing commas or quotes
+      const cellStr = String(cell ?? '').replace(/"/g, '""');
+      return cellStr.includes(',') || cellStr.includes('"') ? `"${cellStr}"` : cellStr;
+    }).join(','))
+  ];
 
-    const head = [['Email', 'Name', 'Rating', 'Comments', 'Created At']];
-    const body = filtered.map(f => [
-      f.email || '',
-      f.name || 'Anonymous',
-      String(f.serviceRating ?? ''),
-      (f.comments || '').replace(/\s+/g, ' ').trim(),
-      f.createdAt ? new Date(f.createdAt).toLocaleString() : ''
-    ]);
+  const csv = csvSections.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `feedback-report-${now.toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
-    autoTable(doc, {
-      startY: 100,
-      head,
-      body,
-      styles: { fontSize: 10, cellPadding: 6, overflow: 'linebreak' },
-      headStyles: { fillColor: [191, 219, 254], textColor: [30, 64, 175] },
-      columnStyles: {
-        0: { cellWidth: 160 },
-        1: { cellWidth: 120 },
-        2: { cellWidth: 60 },
-        3: { cellWidth: 220 },
-        4: { cellWidth: 140 },
-      },
-      didDrawPage: (data) => {
-        const pageCount = doc.getNumberOfPages();
-        const pageSize = doc.internal.pageSize;
-        const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
-        doc.setFontSize(9);
-        doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageSize.width - 80, pageHeight - 20);
-      },
-    });
+//download pdf
+const exportPDF = () => {
+  if (!filtered.length) { toast('No feedbacks to export'); return; }
 
-    doc.save(`feedback-report-${now.toISOString().slice(0,10)}.pdf`);
-  };
+  // A4 LANDSCAPE for maximum width (keep units in pt as you had)
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const now = new Date();
 
+  const pageWidth  = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const left = 40, right = 40;
+
+  // ===== HEADER SECTION (unchanged colors) =====
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(41, 128, 185);
+  doc.text("TechNova", pageWidth / 2, 24, { align: "center" });
+
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(12);
+  doc.setTextColor(100);
+  doc.text("Empowering Digital Operations", pageWidth / 2, 38, { align: "center" });
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(16);
+  doc.text('Feedback Report', left, 70);
+
+  // Date
+  const dateStr = now.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${dateStr} at ${timeStr}`, left, 90);
+
+  // ===== STAR SUMMARY =====
+  const summary = [
+    `Total: ${stats.total}`,
+    `Average Rating: ${stats.avg}`,
+    `5★: ${stats.dist[5]} | 4★: ${stats.dist[4]} | 3★: ${stats.dist[3]} | 2★: ${stats.dist[2]} | 1★: ${stats.dist[1]}`
+  ].join('   •   ');
+  doc.setFontSize(11);
+  const wrappedSummary = doc.splitTextToSize(summary, pageWidth - left - right);
+  doc.text(wrappedSummary, left, 110);
+
+  // ===== TABLE SECTION =====
+  const head = [['Email', 'Name', 'Rating', 'Comments', 'Created At']];
+  const body = filtered.map(f => [
+    f.email || '',
+    f.name || 'Anonymous',
+    String(f.serviceRating ?? ''),
+    (f.comments || '').replace(/\s+/g, ' ').trim(),
+    f.createdAt ? new Date(f.createdAt).toLocaleString() : ''
+  ]);
+
+  // Keep same margins, but recalculated widths for landscape
+  const tableMargin   = { left, right, top: 140, bottom: 40 };
+  const available     = pageWidth - tableMargin.left - tableMargin.right;
+
+  // Rebalanced widths (sum = 1.00). More room for Email & Comments.
+  const wEmail    = available * 0.32;
+  const wName     = available * 0.14;
+  const wRating   = available * 0.08;
+  const wComments = available * 0.36;
+  const wCreated  = available * 0.10;
+
+  autoTable(doc, {
+    startY: tableMargin.top,
+    head,
+    body,
+    tableWidth: available,
+    margin: tableMargin,
+    // IMPORTANT: show full content without cutting or mid-word breaks
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,          // slightly compact but readable
+      cellPadding: 6,
+      overflow: 'linebreak', // wrap to new lines instead of truncating
+      wordBreak: 'normal',   // do NOT break words in the middle
+      lineColor: [191, 219, 254],
+      textColor: [30, 58, 138],
+      valign: 'top'
+    },
+    headStyles: {
+      fillColor: [191, 219, 254], // keep your original header colors
+      textColor: [30, 64, 175],
+      fontStyle: 'bold'
+    },
+    columnStyles: {
+      0: { cellWidth: wEmail },
+      1: { cellWidth: wName },
+      2: { cellWidth: wRating, halign: 'center' },
+      3: { cellWidth: wComments },
+      4: { cellWidth: wCreated }
+    },
+    didDrawPage: (data) => {
+      const pageCount = doc.getNumberOfPages();
+      doc.setFontSize(9);
+      doc.setTextColor(130);
+      doc.text(
+        `Page ${data.pageNumber} of ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 20,
+        { align: "center" }
+      );
+    },
+  });
+
+  doc.save(`feedback-report-${now.toISOString().slice(0,10)}.pdf`);
+};
+
+
+
+
+//delete feedback
   const handleDelete = async (id) => {
     const ok = window.confirm('Delete this feedback? This cannot be undone.');
     if (!ok) return;
@@ -157,7 +249,7 @@ const AdminFeedbackPage = () => {
     });
     setEditOpen(true);
   };
-
+  
   const saveEdit = async () => {
     if (!editing?._id) return;
     const { _id, email, name, serviceRating, comments } = editing;
@@ -279,7 +371,7 @@ const AdminFeedbackPage = () => {
                 </td>
                 <td className="px-4 py-2">
                   <div className="flex gap-2">
-                    {/* <button
+                    <button
                       onClick={() => startEdit(f)}
                       className="inline-flex items-center gap-1 rounded-md bg-[#10B981] hover:bg-[#059669] text-white px-3 py-1"
                       aria-label="Edit feedback"
@@ -287,7 +379,7 @@ const AdminFeedbackPage = () => {
                     >
                       <Pencil className="w-4 h-4" />
                       <span className="hidden sm:inline">Edit</span>
-                    </button> */}
+                    </button>
                     <button
                       onClick={() => handleDelete(f._id)}
                       className="inline-flex items-center gap-1 rounded-md bg-[#EF4444] hover:bg-[#DC2626] text-white px-3 py-1"

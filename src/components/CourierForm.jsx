@@ -26,11 +26,64 @@ export default function CourierForm() {
 
   useEffect(() => { fetchReport(); fetchCouriers(); }, []);
 
+  // ✅ Beautified CSV export (only this part changed)
   const handleExportCSV = () => {
     if (!report.length) return;
-    const headers = ["Courier","Assigned Orders","Completed Orders","Delayed Orders","On-time Rate (%)","Avg Delay (min)","Avg Lead (hrs)","Overall Performance"];
-    const rows = report.map(r => [r.courier, r.assignedOrders ?? 0, r.completedOrders ?? 0, r.delayedOrders ?? 0, r.onTimeRatePct ?? 0, r.avgDelayMinutes ?? "", r.avgLeadHours ?? "", r.overallPerformance ?? ""]);
-    const csv = [headers, ...rows].map(a => a.join(",")).join("\n");
+
+    // pull server-provided timestamps if present (from your enhanced backend),
+    // else fall back to "now"
+    const nowLocal =
+      report[0]?.generatedAtLocal || new Date().toLocaleString();
+    const nowISO =
+      report[0]?.generatedAtISO || new Date().toISOString();
+
+    // basic CSV escaper
+    const esc = (v) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    // headers
+    const headers = [
+      "Courier",
+      "Assigned Orders",
+      "Completed Orders",
+      "Delayed Orders",
+      "On-time Rate (%)",
+      "Avg Delay (min)",
+      "Avg Lead (hrs)",
+      "Overall Performance",
+    ];
+
+    // rows
+    const rows = report.map((r) => [
+      r.courier,
+      r.assignedOrders ?? 0,
+      r.completedOrders ?? 0,
+      r.delayedOrders ?? 0,
+      // pretty percent, keep number-like format
+      typeof r.onTimeRatePct === "number" ? `${r.onTimeRatePct}` : (r.onTimeRatePct ?? ""),
+      r.avgDelayMinutes ?? "",
+      r.avgLeadHours ?? "",
+      r.overallPerformance ?? "",
+    ]);
+
+    // top “pretty” meta block
+    const prettyHeader = [
+      ["Courier Performance Report"],
+      ["Report Month", month || "All"],
+      ["Created At (Local)", nowLocal],
+      ["Created At (ISO)", nowISO],
+      [], // blank line
+      headers
+    ];
+
+    // build CSV
+    const csv = [
+      ...prettyHeader.map((arr) => arr.map(esc).join(",")),
+      ...rows.map((arr) => arr.map(esc).join(",")),
+    ].join("\n");
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");

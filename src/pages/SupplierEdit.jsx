@@ -17,12 +17,10 @@ export default function SupplierEdit() {
   const [form, setForm] = useState({
     supplierId: "",
     supplierName: "",
-    contactName: "",
     contactNo: "",
     email: "",
     address: "",
-    city: "",
-    country: "",
+    description: "",
     status: "Active",
     paymentTerms: "NET 30",
     notes: "",
@@ -47,18 +45,16 @@ export default function SupplierEdit() {
     (async () => {
       if (!id) return showErr("Missing ?id= in URL (supplierId or Mongo _id).");
       try {
-        const res = await SUPPLIERS.getOne(id);
-        const j = res.data;
+        const res = await SUPPLIERS.getById(id);
+        const j = res?.data?.data || res?.data || {};
 
         setForm({
           supplierId: j.supplierId || "",
           supplierName: j.supplierName || j.name || "",
-          contactName: j.contactName || "",
           contactNo: j.contactNo || j.phone || "",
           email: j.email || "",
           address: j.address || "",
-          city: j.city || "",
-          country: j.country || "",
+          description: j.description || "",
           status: j.status || "Active",
           paymentTerms: j.paymentTerms || "NET 30",
           notes: j.notes || "",
@@ -79,8 +75,9 @@ export default function SupplierEdit() {
       supplierName: form.supplierName.trim(),
       contactNo: form.contactNo.trim(),
       email: form.email.trim(),
-      address: [form.address, form.city, form.country].filter(Boolean).join(", "),
-      // status, paymentTerms, notes are still available but optional
+      address: form.address.trim(),
+      description: form.description.trim(),
+      // status, paymentTerms, notes remain local-only
     };
 
     if (!payload.supplierId || !payload.supplierName) {
@@ -189,24 +186,14 @@ export default function SupplierEdit() {
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Contact Person" blue={blue}>
-                  <input
-                    className="w-full rounded-md px-3 py-2 border"
-                    name="contactName"
-                    value={form.contactName}
-                    onChange={onChange}
-                  />
-                </Field>
-                <Field label="Phone" blue={blue}>
-                  <input
-                    className="w-full rounded-md px-3 py-2 border"
-                    name="contactNo"
-                    value={form.contactNo}
-                    onChange={onChange}
-                  />
-                </Field>
-              </div>
+              <Field label="Phone" blue={blue}>
+                <input
+                  className="w-full rounded-md px-3 py-2 border"
+                  name="contactNo"
+                  value={form.contactNo}
+                  onChange={onChange}
+                />
+              </Field>
 
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Email" blue={blue}>
@@ -231,6 +218,18 @@ export default function SupplierEdit() {
                   </select>
                 </Field>
               </div>
+
+              {/* Description */}
+              <Field label="Description (What they supply)" blue={blue}>
+                <textarea
+                  className="w-full rounded-md px-3 py-2 border"
+                  rows={3}
+                  name="description"
+                  value={form.description}
+                  onChange={onChange}
+                  placeholder="e.g., Computer peripherals, printers, or laptop spare parts"
+                />
+              </Field>
             </div>
 
             {/* right column */}
@@ -243,25 +242,6 @@ export default function SupplierEdit() {
                   onChange={onChange}
                 />
               </Field>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="City" blue={blue}>
-                  <input
-                    className="w-full rounded-md px-3 py-2 border"
-                    name="city"
-                    value={form.city}
-                    onChange={onChange}
-                  />
-                </Field>
-                <Field label="Country" blue={blue}>
-                  <input
-                    className="w-full rounded-md px-3 py-2 border"
-                    name="country"
-                    value={form.country}
-                    onChange={onChange}
-                  />
-                </Field>
-              </div>
 
               <Field label="Payment Terms" blue={blue}>
                 <select

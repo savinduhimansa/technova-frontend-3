@@ -4,15 +4,53 @@ import toast from "react-hot-toast";
 
 // Dropdown options
 const options = {
-  cpu: ["Intel i9", "Intel i7", "Intel i5", "AMD Ryzen 9", "AMD Ryzen 7", "AMD Ryzen 5"],
-  motherboard: ["ASUS ROG Strix Z690", "MSI B550 Tomahawk", "Gigabyte X570 Aorus Elite"],
-  ram: ["Corsair Vengeance 16GB", "G.Skill TridentZ 32GB", "Kingston Fury 16GB"],
-  gpu: ["NVIDIA RTX 4090", "NVIDIA RTX 4070", "AMD Radeon RX 7900XT", "AMD Radeon RX 6800"],
-  case: ["NZXT H510", "Corsair iCUE 4000X", "Cooler Master MasterBox TD500"],
-  ssd: ["Samsung 980 Pro 1TB", "WD Black SN850X 1TB", "Crucial P5 Plus 1TB"],
-  hdd: ["Seagate Barracuda 2TB", "WD Blue 2TB", "Toshiba X300 4TB"],
-  psu: ["Corsair RM850x", "EVGA SuperNOVA 750W", "Seasonic Focus GX-650W"],
-  fans: ["Noctua NF-A12", "Corsair LL120", "Cooler Master SickleFlow"]
+  cpu: [
+    "Intel i9", "Intel i7", "Intel i5", "AMD Ryzen 9", "AMD Ryzen 7", "AMD Ryzen 5",
+    // New additions
+    "Intel Core i9-13900K", "Intel Core i7-13700K", "Intel Core i5-13600K",
+    "AMD Ryzen 9 7950X", "AMD Ryzen 7 7800X3D", "AMD Ryzen 5 7600X"
+  ],
+  motherboard: [
+    "ASUS ROG Strix Z690", "MSI B550 Tomahawk", "Gigabyte X570 Aorus Elite",
+    // New additions
+    "ASUS TUF Gaming B650-PLUS", "Gigabyte B760M Aorus Elite", "ASRock Z790 Steel Legend"
+  ],
+  ram: [
+    "Corsair Vengeance 16GB", "G.Skill TridentZ 32GB", "Kingston Fury 16GB",
+    // New additions
+    "Corsair Vengeance DDR5 32GB", "G.Skill Ripjaws S5 32GB DDR5", "Teamgroup T-Force Vulcan 16GB"
+  ],
+  gpu: [
+    "NVIDIA RTX 4090", "NVIDIA RTX 4070", "AMD Radeon RX 7900XT", "AMD Radeon RX 6800",
+    // New additions
+    "NVIDIA RTX 4080", "NVIDIA RTX 4060 Ti", "NVIDIA RTX 3060",
+    "AMD Radeon RX 7800XT", "AMD Radeon RX 6700XT"
+  ],
+  case: [
+    "NZXT H510", "Corsair iCUE 4000X", "Cooler Master MasterBox TD500",
+    // New additions
+    "Lian Li Lancool 216", "Fractal Design Meshify C", "Phanteks Eclipse P400A"
+  ],
+  ssd: [
+    "Samsung 980 Pro 1TB", "WD Black SN850X 1TB", "Crucial P5 Plus 1TB",
+    // New additions
+    "Samsung 990 Pro 2TB", "SK Hynix Platinum P41 1TB", "Crucial MX500 1TB SATA"
+  ],
+  hdd: [
+    "Seagate Barracuda 2TB", "WD Blue 2TB", "Toshiba X300 4TB",
+    // New additions
+    "Seagate IronWolf 4TB", "WD Black 6TB", "Seagate SkyHawk 8TB"
+  ],
+  psu: [
+    "Corsair RM850x", "EVGA SuperNOVA 750W", "Seasonic Focus GX-650W",
+    // New additions
+    "Corsair RM1000e", "be quiet! Pure Power 12 M 850W", "Cooler Master MWE Gold 650W"
+  ],
+  fans: [
+    "Noctua NF-A12", "Corsair LL120", "Cooler Master SickleFlow",
+    // New additions
+    "Lian Li Uni Fan SL120", "Arctic P12 PWM PST (5 Pack)", "be quiet! Silent Wings 4"
+  ]
 };
 
 export default function MyPCRequest() {

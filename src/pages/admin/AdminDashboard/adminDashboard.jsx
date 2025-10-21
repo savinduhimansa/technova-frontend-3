@@ -17,8 +17,10 @@ import { FaSuitcase } from 'react-icons/fa6';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 
+//chart
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
+//slide bar-navigations and logout
 const Sidebar = () => {
   const navigate = useNavigate();
   const handleLogout = () => {
@@ -72,18 +74,10 @@ const Sidebar = () => {
                 Requested PC
               </NavLink>
             </li>
+           
             <li className="nav-item">
               <NavLink
-                to="/admindashboard/products"
-                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#1E40AF] hover:text-white transition"
-              >
-                <FaSitemap className="nav-icon" />
-                Products
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink
-                to="/admindashboard/inventory"
+                to="/inv/dashboard"
                 className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#1E40AF] hover:text-white transition"
               >
                 <FaBox className="nav-icon" />
@@ -143,12 +137,14 @@ const Sidebar = () => {
 };
 
 const DashboardContent = () => {
+  //users
   const [userChartData, setUserChartData] = useState({
     labels: ['Logged-In Users', 'Newly Created Users'],
     datasets: [{ data: [0, 0], backgroundColor: ['#28a745', '#007bff'] }],
   });
   const [totalUsers, setTotalUsers] = useState(0);
 
+  //user counting
   const fetchUserCounts = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -175,13 +171,13 @@ const DashboardContent = () => {
       console.error("Failed to fetch user data for dashboard:", error);
     }
   };
-
+//staff
   const [staffChartData, setStaffChartData] = useState({
     labels: ['Logged-In Staff', 'Newly Created Staff'],
     datasets: [{ data: [0, 0], backgroundColor: ['#17a2b8', '#dc3545'] }],
   });
   const [totalStaff, setTotalStaff] = useState(0);
-
+//staff counting
   const fetchStaffCounts = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -208,7 +204,7 @@ const DashboardContent = () => {
       console.error("Failed to fetch staff data for dashboard:", error);
     }
   };
-
+//feddback
   const [feedbackChartData, setFeedbackChartData] = useState({
     labels: ['1 Star', '2 Stars', '3 Stars', '4 Stars', '5 Stars'],
     datasets: [{
@@ -220,7 +216,7 @@ const DashboardContent = () => {
     }],
   });
   const [totalFeedbacks, setTotalFeedbacks] = useState(0);
-
+//feedback counting
   const fetchFeedbackCounts = async () => {
     try {
       const response = await axios.get('http://localhost:5001/api/feedback');
@@ -249,7 +245,7 @@ const DashboardContent = () => {
       console.error("Failed to fetch feedback data for dashboard:", error);
     }
   };
-
+//calling 
   useEffect(() => {
     fetchUserCounts();
     fetchStaffCounts();
@@ -276,11 +272,11 @@ const DashboardContent = () => {
       <header className="dashboard-header flex justify-between items-center border-b border-[#BFDBFE] pb-4 mb-6">
         <h1 className="text-2xl font-bold text-[#1E40AF]">Dashboard Overview</h1>
         <div className="header-right flex items-center gap-3">
-          <input
+          {/* <input
             type="text"
             placeholder="Search..."
             className="rounded-md bg-white border border-blue-300 px-3 py-1 text-sm text-[#1E3A8A] focus:ring-2 focus:ring-[#3B82F6] shadow-sm"
-          />
+          /> */}
           <div className="profile-icon h-8 w-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 shadow" />
         </div>
       </header>
@@ -342,7 +338,7 @@ const AdminDashboard = () => {
           <Route path="/products" element={<h1 className="text-[#1E40AF] p-6">Products Page</h1>} />
           <Route path="/inventory" element={<h1 className="text-[#1E40AF] p-6">Inventory Page</h1>} />
           <Route path="/feedback" element={<AdminFeedbackPage />} />
-         <Route path="admin-repair" element={<AdminRepairs />} />
+         <Route path="admin-repair" element={<AdminRepairs />} />
          <Route path="/orders" element={<AdminOrder />} />
          <Route path="/delivery" element={<AdminDelivery />} />
           <Route path="/login" element={<LoginPage />} />

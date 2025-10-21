@@ -10,3 +10,6 @@ export const getConfirmedOrders = () => api.get("/orders/confirmed");
 export const createPublicOrder = (data) => api.post("/public/orders", data);
 export const getMyOrders = () => api.get("/public/orders/mine");
 export const cancelMyOrder = (id) => api.patch(`/public/orders/${id}/cancel`);
+
+// ⬇️ NEW: customer updates their own order
+export const updateMyOrder = (id, data) => api.put(`/public/orders/${id}`, data);

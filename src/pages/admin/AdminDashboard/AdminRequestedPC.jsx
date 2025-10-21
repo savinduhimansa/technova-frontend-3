@@ -73,37 +73,134 @@ const AdminRequestedPC = () => {
   // Pending requests count
   const pendingCount = requests.filter((req) => req.status === "pending").length;
 
-  // Generate PDF
+  // Generate PDF with centered TechNova header
   const downloadPdf = () => {
     if (!filteredRequests.length) {
       toast.error("No data to download.");
       return;
     }
-    const doc = new jsPDF();
-    const today = new Date().toLocaleString();
 
-    doc.text(
-      `PC Builds Report - ${filter.charAt(0).toUpperCase() + filter.slice(1)}`,
-      14,
-      15
-    );
-    doc.text(`Generated on: ${today}`, 14, 22);
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const marginX = 40;
+    const marginY = 40;
+    const usableW = pageW - marginX * 2;
+    const now = new Date().toLocaleString();
+    const title = `PC Builds Report — ${filter.charAt(0).toUpperCase() + filter.slice(1)}`;
+
+    // Centered Header
+    const drawHeader = () => {
+      const centerX = pageW / 2;
+      let y = marginY + 5;
+
+      // TechNova company name
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text("TechNova", centerX, y, { align: "center" });
+
+      // Quote
+      y += 16;
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(11);
+      doc.text("“Empowering Digital Operations”", centerX, y, { align: "center" });
+
+      // Title and date (left aligned under header)
+      y += 24;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(title, marginX, y);
+
+      y += 16;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${now}`, marginX, y);
+
+      // Divider
+      y += 10;
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(180, 200, 255);
+      doc.line(marginX, y, marginX + usableW, y);
+
+      return y + 12;
+    };
+
+    const drawFooter = (data) => {
+      const pageCount = doc.getNumberOfPages();
+      const str = `Page ${data.pageNumber} of ${pageCount}`;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(str, pageW - marginX, pageH - 20, { align: "right" });
+    };
+
+    // Table setup
+    const headRow = [
+      "Customer Email",
+      ...partsList.map((p) => p.toUpperCase()),
+      "Total Price",
+      "Status",
+    ];
+
+    const bodyRows = filteredRequests.map((req) => [
+      req.customerEmail || "-",
+      ...partsList.map((p) => (req[p] ? String(req[p]) : "-")),
+      typeof req.totalPrice === "number" ? `$${req.totalPrice}` : (req.totalPrice || "-"),
+      req.status ? req.status.charAt(0).toUpperCase() + req.status.slice(1) : "-",
+    ]);
+
+    // Updated column widths (fit exactly within usable width)
+    const columnStyles = {
+      0:  { cellWidth: 115 },
+      1:  { cellWidth: 55 },
+      2:  { cellWidth: 65 },
+      3:  { cellWidth: 55 },
+      4:  { cellWidth: 75 },
+      5:  { cellWidth: 55 },
+      6:  { cellWidth: 55 },
+      7:  { cellWidth: 55 },
+      8:  { cellWidth: 55 },
+      9:  { cellWidth: 55 },
+      10: { cellWidth: 60, halign: "right" },
+      11: { cellWidth: 60 },
+    };
+
+    const startY = drawHeader();
 
     autoTable(doc, {
-      startY: 28,
-      head: [
-        ["Customer Email", ...partsList.map((p) => p.toUpperCase()), "Total Price", "Status"],
-      ],
-      body: filteredRequests.map((req) => [
-        req.customerEmail,
-        ...partsList.map((p) => req[p] || "-"),
-        `$${req.totalPrice}`,
-        req.status.charAt(0).toUpperCase() + req.status.slice(1),
-      ]),
+      startY,
+      head: [headRow],
+      body: bodyRows,
+      margin: { left: marginX, right: marginX },
+      styles: {
+        font: "helvetica",
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: "linebreak",
+        lineWidth: 0.1,
+        valign: "middle",
+      },
+      headStyles: {
+        fillColor: [30, 64, 175],
+        textColor: 255,
+        fontStyle: "bold",
+        halign: "left",
+      },
+      bodyStyles: { textColor: [20, 20, 20] },
+      alternateRowStyles: { fillColor: [240, 245, 255] },
+      columnStyles,
+      tableLineColor: [180, 200, 255],
+      tableLineWidth: 0.1,
+      pageBreak: "auto",
+      rowPageBreak: "auto",
+      didDrawPage: (data) => {
+        drawFooter(data);
+      },
     });
+
     doc.save(`PC_Builds_Report_${filter}.pdf`);
   };
 
+  // Webpage table UI
   const renderTable = (data) => (
     <div className="overflow-x-auto rounded-xl border border-[#BFDBFE] bg-[#DBEAFE] shadow-sm">
       <table className="w-full text-xs sm:text-sm text-left">

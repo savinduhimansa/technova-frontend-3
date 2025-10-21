@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const ForgetPassword = () => {
   const [email, setEmail] = useState('');
@@ -9,6 +10,15 @@ const ForgetPassword = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [step, setStep] = useState(1);
+
+  const [token, setToken] = useState(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+
+  
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -42,6 +52,10 @@ const ForgetPassword = () => {
           toast.success('An OTP has been sent to your email.');
           setStep(2);
         } else if (step === 2) {
+          
+          
+
+
           await axios.post('http://localhost:5001/api/auth/reset-password-otp', { email, otp, newPassword: password });
           toast.success('Password has been reset successfully!');
           setEmail('');
@@ -142,7 +156,7 @@ const ForgetPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#DBEAFE] via-[#E0ECFF] to-white p-6 relative overflow-hidden">
-      {/* Subtle Blue Horizon glows */}
+      
       <div className="absolute inset-0 opacity-40 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.25),transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(191,219,254,0.35),transparent_55%)]" />

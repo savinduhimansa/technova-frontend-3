@@ -18,6 +18,9 @@ export default function BuildMyPC() {
   const [total, setTotal] = useState(0);
   const [parts, setParts] = useState({});
 
+  // Define which parts are required
+  const requiredParts = ["cpu", "motherboard", "ram", "psu", "case", "ssd"];
+
   // Fetch available parts
   useEffect(() => {
     axios
@@ -83,29 +86,40 @@ export default function BuildMyPC() {
               onChange={handleChange}
               placeholder="Enter your email"
               className="border rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-blue-400 border-gray-300"
+              required // <-- Also make email required
             />
           </div>
 
           {/* Parts Dropdowns */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {["cpu", "motherboard", "ram", "gpu", "case", "ssd", "hdd", "psu", "fans"].map((partKey) => (
-              <div key={partKey} className="flex flex-col">
-                <label className="text-gray-700 font-semibold mb-2 capitalize">{partKey}</label>
-                <select
-                  name={partKey}
-                  value={formData[partKey]}
-                  onChange={handleChange}
-                  className="border rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:border-blue-500 border-gray-300"
-                >
-                  <option value="">Select {partKey} (optional)</option>
-                  {parts[partKey]?.map((p) => (
-                    <option key={p.name} value={p.name}>
-                      {p.name} (${p.price})
+            {["cpu", "motherboard", "ram", "gpu", "case", "ssd", "hdd", "psu", "fans"].map((partKey) => {
+              // Check if the current part is in our required list
+              const isRequired = requiredParts.includes(partKey);
+
+              return (
+                <div key={partKey} className="flex flex-col">
+                  <label className="text-gray-700 font-semibold mb-2 capitalize">{partKey}</label>
+                  <select
+                    name={partKey}
+                    value={formData[partKey]}
+                    onChange={handleChange}
+                    className="border rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:border-blue-500 border-gray-300"
+                    required={isRequired} // <-- Conditionally add the required attribute
+                  >
+                    {/* Update the default option text */}
+                    <option value="">
+                      Select {partKey} ({isRequired ? "required" : "optional"})
                     </option>
-                  ))}
-                </select>
-              </div>
-            ))}
+                    
+                    {parts[partKey]?.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name} (${p.price})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
 
           {/* Total Price */}

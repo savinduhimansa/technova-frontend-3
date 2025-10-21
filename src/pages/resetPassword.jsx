@@ -16,7 +16,7 @@ const ResetPassword = () => {
     const queryParams = new URLSearchParams(location.search);
     const tokenFromUrl = queryParams.get('token');
     if (tokenFromUrl) {
-      setToken(tokenFromUrl);
+      token(tokenFromUrl);
     } else {
       toast.error('Invalid or missing password reset token.');
       navigate('/forgot-password');
@@ -41,7 +41,7 @@ const ResetPassword = () => {
     e.preventDefault();
     if (validateForm() && token) {
       try {
-        await axios.post('http://localhost:5001/api/auth/reset-password', {
+        await axios.post('http://localhost:5001/api/auth/reset-password-otp', {
           token,
           newPassword: password,
         });
@@ -57,7 +57,7 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#DBEAFE] via-[#EFF6FF] to-white p-6 relative overflow-hidden">
-      {/* Soft background glow */}
+    
       <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.2),transparent_50%)] animate-pulse" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(191,219,254,0.3),transparent_50%)] animate-pulse delay-500" />
